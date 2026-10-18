@@ -1,0 +1,27 @@
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "GetPutPrefixes",
+            "Effect": "Allow",
+            "Action": [
+                "s3:PutObject",
+                "s3:GetObject"
+            ],
+            "Resource": "<your-resource-arn>/${aws:username}/*"
+        },
+        {
+            "Sid": "ListPrefixes",
+            "Effect": "Allow",
+            "Action": [
+                "s3:ListBucket"
+            ],
+            "Resource": "<your-s3-arn>",
+            "Condition": {
+                "StringLike": {
+                    "s3:prefix": "${aws:username}/*"
+                }
+            }
+        }
+    ]
+}
