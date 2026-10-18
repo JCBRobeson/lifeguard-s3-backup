@@ -7,7 +7,7 @@
 			"Principal": "*",
 			"Action": "s3:*",
 			"Resource": [
-				"arn:aws:s3:::<your-s3-arn>",
+				"<your-s3-arn>",
 				"<your-s3-arn>/*"
 			],
 			"Condition": {
