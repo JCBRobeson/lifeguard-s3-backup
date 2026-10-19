@@ -129,18 +129,6 @@ Objects are named `<machine>/<service>.tar.zst.age`. The extensions record each 
 - **Caddy re-issues its certificates.** Skipping the certificate volume keeps TLS private keys out of the backup. The only cost is Let's Encrypt's rate limit, around 5 duplicate certificates a week, if I rebuild Caddy over and over.
 - **Teleporter export on the backup Pi-hole too.** It preserves the app password nebula-sync logs in with. Without it, every rebuild means generating a new app password and updating the sync config by hand.
 
-### Change detection
-
-Folders that don't change on their own get fingerprinted, and skipped when nothing changed:
-
-```
-cd <folder> && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum | sha256sum
-```
-
-It hashes every file, then hashes the list of `hash  path` lines. Because paths are part of that list, renamed, added and deleted files all change the result. `-print0`, `sort -z` and `xargs -0` keep filenames with spaces from breaking the list. `LC_ALL=C` sorts by raw bytes, so the order is the same on every machine.
-
-I don't fingerprint Jellyfin. I tested it: Jellyfin writes to its databases every time it stops and starts. Since the backup itself stops and starts it, the fingerprint changes every night no matter what. Pi-hole's Teleporter export has a timestamp inside it, so the same goes for it. Both just upload nightly. They're small.
-
 ## Restoring
 
 Restores go to a scratch folder first, never straight over live files. I do them in a root shell so file ownership comes back correctly.
