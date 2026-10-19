@@ -4,7 +4,7 @@ Encrypted off-site backups of my home lab's service configs, stored in AWS S3.
 
 Each service's config gets packed with `tar`, compressed with `zstd`, and encrypted on the machine with [age](https://github.com/FiloSottile/age) before it's uploaded. Only encrypted files ever leave the house. The private key that can decrypt them never touches the servers.
 
-I built this by hand, in the AWS console and the shell, to learn AWS and Linux properly. Terraform comes later.
+I built this by hand, in the AWS console and the shell.
 
 > **Work in progress.** The manual pipeline is built and restore-tested on both machines. The scripts, systemd timers and alerting are next. See [Roadmap](#roadmap).
 
