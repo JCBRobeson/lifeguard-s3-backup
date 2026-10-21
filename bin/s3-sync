@@ -1,0 +1,42 @@
+#!/bin/bash
+
+set -uo pipefail
+umask 077
+
+CONFIG="/etc/homelab-backup/backup.conf"
+
+die() {
+    echo "ERROR: $*"
+    exit 1
+}
+
+if [ "$EUID" -ne 0 ]; then
+    die "must run as root"
+fi
+
+if [ ! -f "$CONFIG" ]; then
+    die "config not found: $CONFIG"
+fi
+
+#shellcheck source=/dev/null
+source "$CONFIG"
+export AWS_SHARED_CREDENTIALS_FILE AWS_CONFIG_FILE
+
+exec 9>/run/s3-sync.lock
+flock -n 9 || die "another s3 backup is running"
+
+WORK=$(mktemp -d /tmp/s3-sync.XXXXXX) || die "could not create work folder"
+STOPPED=""
+
+cleanup() {
+    if [ -n "$STOPPED" ]; then
+        echo "restarting $STOPPED"
+        docker compose -f "$STOPPED/docker-compose.yaml" up -d
+    fi
+    rm -rf "$WORK"
+}
+
+trap cleanup EXIT
+
+
+
