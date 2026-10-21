@@ -1,0 +1,10 @@
+*
+!*/
+!README.md
+!.gitignore
+!LICENSE
+!*-policy.json
+!backup.conf.example
+!systemd/*.service
+!systemd/*.timer
+!bin/s3-sync
