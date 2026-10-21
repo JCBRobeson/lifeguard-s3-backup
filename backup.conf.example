@@ -1,0 +1,21 @@
+# homelab backup configuration
+
+# this is the place for all your variables and config related items for the to-be backup script
+
+# S3 bucket name, without the s3:// prefix
+BUCKET="<your-bucket>"
+
+# This host's prefix in the bucket. Must match this host's IAM username.
+HOST_PREFIX="<host>"
+
+# Services to back up on this host, in order, space-separated.
+# Available: jellyfin arr-stack network-stack caddy nebula-sync
+SERVICES="<service> <service> <service>"
+
+# Folder containing each stack, e.g. /srv/jellyfin
+STACKS_DIR="/srv"
+
+# Credentials and keys used by the AWS CLI and age
+AWS_SHARED_CREDENTIALS_FILE="/etc/homelab-backup/aws-credentials"
+AWS_CONFIG_FILE="/etc/homelab-backup/aws-config"
+AGE_RECIPIENTS="/etc/homelab-backup/age-recipients.txt"
