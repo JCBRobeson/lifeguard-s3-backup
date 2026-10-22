@@ -51,5 +51,24 @@ upload() {
     echo "uploaded $HOST_PREFIX/$name"
 }
 
+backup_jellyfin() {
+    local dir="$STACKS_DIR/jellyfin"
+    local result=0
 
+    STOPPED="$dir"
+    docker compose -f "$dir/docker-compose.yaml" stop || result=1
 
+    if [ "$result" -eq 0 ]; then
+        upload jellyfin -C "$dir" \
+            --exclude=./cache \
+            --exclude=./config/metadata \
+            --exclude=./config/log \
+            . || result=1
+    fi
+
+    docker compose -f "$dir/docker-compose.yaml" up -d || result=1
+    STOPPED=""
+    return "$result"
+}
+
+backup_jellyfin; echo "jellyfin result: $?"
