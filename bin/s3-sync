@@ -25,6 +25,8 @@ export AWS_SHARED_CREDENTIALS_FILE AWS_CONFIG_FILE
 exec 9>/run/s3-sync.lock
 flock -n 9 || die "another s3 backup is running"
 
+rm -rf -- /tmp/s3-sync.*
+
 WORK=$(mktemp -d /tmp/s3-sync.XXXXXX) || die "could not create work folder"
 STOPPED=""
 
@@ -33,10 +35,21 @@ cleanup() {
         echo "restarting $STOPPED"
         docker compose -f "$STOPPED/docker-compose.yaml" up -d
     fi
-    rm -rf "$WORK"
+    rm -rf -- "${WORK:?}"
 }
 
 trap cleanup EXIT
+
+upload() {
+    local name="$1"
+    shift
+    local out="$WORK/$name.tar.zst.age"
+
+    tar --zstd -cf - "$@" | age -R "$AGE_RECIPIENTS" -o "$out" || { echo "ERROR: failed to create archive for $name"; return 1; }
+    /usr/local/bin/aws s3 cp "$out" "s3://$BUCKET/$HOST_PREFIX/$name.tar.zst.age" --only-show-errors || { echo "ERROR: failed to upload $name"; return 1; }
+    rm -f -- "$out"
+    echo "uploaded $HOST_PREFIX/$name"
+}
 
 
 
