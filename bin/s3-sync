@@ -33,7 +33,7 @@ STOPPED=""
 cleanup() {
     if [ -n "$STOPPED" ]; then
         echo "restarting $STOPPED"
-        docker compose -f "$STOPPED/docker-compose.yaml" up -d
+        docker compose -f "$STOPPED/docker-compose.yaml" start
     fi
     rm -rf -- "${WORK:?}"
 }
@@ -66,9 +66,82 @@ backup_jellyfin() {
             . || result=1
     fi
 
-    docker compose -f "$dir/docker-compose.yaml" up -d || result=1
+    docker compose -f "$dir/docker-compose.yaml" start || result=1
     STOPPED=""
     return "$result"
 }
 
-backup_jellyfin; echo "jellyfin result: $?"
+backup_arr_stack() {
+    local dir="$STACKS_DIR/arr-stack"
+    local result=0
+
+    STOPPED="$dir"
+    docker compose -f "$dir/docker-compose.yaml" stop || result=1
+
+    if [ "$result" -eq 0 ]; then
+        upload arr-stack -C "$dir" \
+            --exclude=./seerr/config/logs \
+            --exclude=./seerr/config/cache \
+            --exclude=./qbittorrent/config/.cache \
+            --exclude=./qbittorrent/config/qBittorrent/BT_backup \
+            --exclude=./qbittorrent/config/qBittorrent/GeoDB \
+            --exclude=./qbittorrent/config/qBittorrent/logs \
+            --exclude=./qbittorrent/config/qBittorrent/lockfile \
+            ./docker-compose.yaml \
+            ./sonarr/config/Backups \
+            ./radarr/config/Backups \
+            ./prowlarr/config/Backups \
+            ./seerr/config \
+            ./qbittorrent/config \
+            || result=1
+    fi
+
+    docker compose -f "$dir/docker-compose.yaml" start || result=1
+    STOPPED=""
+    return "$result"
+}
+
+backup_network_stack() {
+    local dir="$STACKS_DIR/network-stack"
+    local zip="$WORK/pihole-teleporter.zip"
+    local file
+
+    docker exec pihole sh -c 'rm -f /tmp/*teleporter*.zip' || return 1
+    docker exec -w /tmp pihole pihole-FTL --teleporter >/dev/null || return 1
+    file=$(docker exec pihole sh -c 'ls /tmp/*teleporter*.zip') || return 1
+    docker cp -q "pihole:$file" "$zip" || return 1
+    docker exec pihole rm -f "$file"
+
+    upload network-stack \
+        -C "$dir" ./.env ./docker-compose.override.yaml \
+        -C "$WORK" ./pihole-teleporter.zip \
+        || { rm -f -- "$zip"; return 1; }
+    rm -f -- "$zip"
+}
+
+backup_caddy() {
+    upload caddy -C "$STACKS_DIR/caddy" .
+}
+
+backup_nebula_sync() {
+    upload nebula-sync -C "$STACKS_DIR/nebula-sync" .
+}
+
+failed=""
+
+for svc in $SERVICES; do
+    case "$svc" in
+        jellyfin)      backup_jellyfin ;;
+        arr-stack)     backup_arr_stack ;;
+        network-stack) backup_network_stack ;;
+        caddy)         backup_caddy ;;
+        nebula-sync)   backup_nebula_sync ;;
+        *)             echo "ERROR: unknown service: $svc"; false ;;
+    esac || failed="$failed $svc"
+done
+
+if [ -n "$failed" ]; then
+    die "backup failed for:$failed"
+fi
+
+echo "all backups succeeded"
