@@ -1,0 +1,8 @@
+[Unit]
+Description=Encrypted home lab backup to S3
+Wants=network-online.target
+After=network-online.target docker.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/s3-sync
