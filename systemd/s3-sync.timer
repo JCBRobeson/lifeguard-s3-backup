@@ -2,7 +2,7 @@
 Description=Nightly s3-sync backup
 
 [Timer]
-OnCalendar=*-*-* 03:00:00
+OnCalendar=*-*-* 03:04:07
 Persistent=true
 
 [Install]
