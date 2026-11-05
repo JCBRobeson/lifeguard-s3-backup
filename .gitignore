@@ -8,3 +8,4 @@
 !systemd/*.service
 !systemd/*.timer
 !bin/s3-sync
+!lambda/*.py
