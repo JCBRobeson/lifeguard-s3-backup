@@ -6,8 +6,6 @@ Each service's config gets packed with `tar`, compressed with `zstd`, and encryp
 
 I built this by hand, in the AWS console and the shell.
 
-> **Work in progress.** The manual pipeline is built and restore-tested on both machines. The scripts, systemd timers and alerting are next. See [Roadmap](#roadmap).
-
 ## How a backup flows
 
 ```mermaid
@@ -197,19 +195,13 @@ What I learned pinning everything:
 
 ## Known limitations
 
-- **Arr images are on `:latest`.** Restoring a backup into an *older* app version fails, so they need pinning.
 - **Host-level config isn't backed up yet.** Networking, firewall and SSH settings in `/etc` are covered by my rebuild runbooks for now, and later by Ansible.
 - **Docker's SELinux support is off on the VM.** When I turn it on, `:z`/`:Z` labels will handle relabeling restored files.
 - **Long-lived access keys.** See the note on Roles Anywhere above.
 
 ## Roadmap
 
-- Backup scripts, one per machine
-- systemd timers with `Persistent=true`, so a run missed while a machine was off still happens
-- A heartbeat on every run, with SNS alerts when a backup goes quiet
 - A full disaster-recovery drill on a throwaway VM, timed and written up
 - A second age recipient whose private key only exists on paper
-- Pin the arr image versions
 - Terraform for the AWS side
 - IAM Roles Anywhere instead of long-lived keys
-- Object Lock
