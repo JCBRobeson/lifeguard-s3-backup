@@ -164,6 +164,30 @@ I've restored every archive from both machines this way, and all of them matched
 4. **Start Seerr.** Its settings now point at matching keys.
 5. **Start Gluetun and qBittorrent.** The VPN key lives in the compose file, so the forwarded port doesn't change.
 
+## Upgrading
+
+Every container image is pinned to an exact version, so nothing upgrades on its own. I upgrade on purpose, about once a month, one stack at a time.
+
+1. **Back up first.** `sudo systemctl start s3-sync.service`, then check `journalctl -u s3-sync.service -n 20 --no-pager` ends with `all backups succeeded`. Sonarr, Radarr and Prowlarr migrate their databases forward on upgrade, so the only way back to an older version is a backup from before it.
+2. **Read the release notes** for each new version. Breaking changes and renamed environment variables are what bite.
+3. **Bump the tags and apply:**
+
+    docker compose config --quiet    # no output means the file is valid
+    docker compose pull
+    docker compose up -d
+
+4. **Check it actually works.** `docker compose ps` should show the new tags, all running and healthy. Then load each web UI, and for the VPN, check the forwarded port still connects.
+5. **DNS servers go one at a time.** I confirm the first one answers before touching the second, so the network never loses DNS.
+6. **Rolling back** means putting the old tag back and running `docker compose up -d`. If the app already migrated its database, restore its data from the backup in step 1.
+
+What I learned pinning everything:
+
+- **`latest` isn't a version.** It's a label that moves every time the publisher releases. My own backup zips showed three arr apps had upgraded in one week without me deciding to.
+- **A backup can only go forward.** The arr apps restore their zips into the same version or newer, never older. Unpinned images mean a rebuild months later might pull something the backup doesn't fit.
+- **Some `latest` tags are development builds.** Gluetun's `latest` is built from every commit to its main branch, which is why its version label just says `latest`. Only the `v3.x.y` tags are tested releases.
+- **Changing a tag doesn't always recreate the container.** Compose compares the actual image, so pinning to the exact version `latest` already pointed at changes nothing, and `docker ps` keeps showing `:latest`. `docker compose up -d --force-recreate` makes the label match.
+- **The backup script uses `docker compose start`, not `up -d`.** `start` only brings back what `stop` stopped. `up -d` also applies any pending compose edits or newly pulled images, which would turn a 3am backup into an unplanned upgrade.
+
 ## Security
 
 - Nothing in this repo should contain a real bucket name, AWS account ID, hostname, IP address or key. Use placeholders like `<bucket>`.
